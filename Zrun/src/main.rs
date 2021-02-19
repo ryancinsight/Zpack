@@ -1,9 +1,13 @@
 extern crate dirs;
-#[macro_use]
-extern crate log;
-extern crate simple_logger;
+extern crate mimalloc;
+extern crate winapi;
+use mimalloc::MiMalloc;
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
-use log::Level;
+
+extern crate remove_dir_all;
+use remove_dir_all::remove_dir_all;
 use std::env;
 use std::error::Error;
 use std::ffi::*;
@@ -12,13 +16,14 @@ use std::io;
 use std::path::*;
 use std::process;
 
-mod extractor;
 mod executor;
+mod extractor;
 
-static TARGET_FILE_NAME_BUF: &'static [u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q7daes4E1y3p2U2wlJRYmWmjPYfkhZ0PlT14Ls0j8fdDkoj33f2BlRJavLj3mWGibJsGt5uLAtrCDtvxikZ8UX2mQDCrgE\0";
+static TARGET_FILE_NAME_BUF: &[u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q7daes4E1y3p2U2wlJRYmWmjPYfkhZ0PlT14Ls0j8fdDkoj33f2BlRJavLj3mWGibJsGt5uLAtrCDtvxikZ8UX2mQDCrgE\0";
 
 fn target_file_name() -> &'static str {
-    let nul_pos = TARGET_FILE_NAME_BUF.iter()
+    let nul_pos = TARGET_FILE_NAME_BUF
+        .iter()
         .position(|elem| *elem == b'\0')
         .expect("TARGET_FILE_NAME_BUF has no NUL terminator");
 
@@ -29,50 +34,38 @@ fn target_file_name() -> &'static str {
         .expect("Can't convert TARGET_FILE_NAME_BUF CStr to str")
 }
 
-fn cache_path(target: &str) -> PathBuf {
-    dirs::data_local_dir()
-        .expect("No data local dir found")
-        .join("warp")
-        .join("packages")
-        .join(target)
-}
-
 fn extract(exe_path: &Path, cache_path: &Path) -> io::Result<()> {
-    fs::remove_dir_all(cache_path).ok();
+    remove_dir_all(cache_path).ok();
+    println!("Installing new version");
     extractor::extract_to(&exe_path, &cache_path)?;
     Ok(())
 }
 
-fn main() -> Result<(), Box<Error>> {
-    if env::var("WARP_TRACE").is_ok() {
-        simple_logger::init_with_level(Level::Trace)?;
-    }
-
+fn main() -> Result<(), Box<dyn Error>> {
     let self_path = env::current_exe()?;
     let self_file_name = self_path.file_name().unwrap();
-    let cache_path = cache_path(&self_file_name.to_string_lossy());
-
-    trace!("self_path={:?}", self_path);
-    trace!("self_file_name={:?}", self_file_name);
-    trace!("cache_path={:?}", cache_path);
+    let path: String = self_file_name.to_str().unwrap().to_string();
+    let mut cache_path = PathBuf::new();
+    //cache_path.push(r"D:/");
+    cache_path.push(dirs::data_local_dir().unwrap());
+    cache_path.push("AppData");
+    cache_path.push(path);
 
     let target_file_name = target_file_name();
     let target_path = cache_path.join(target_file_name);
 
-    trace!("target_exec={:?}", target_file_name);
-    trace!("target_path={:?}", target_path);
-
     match fs::metadata(&cache_path) {
         Ok(cache) => {
             if cache.modified()? >= fs::metadata(&self_path)?.modified()? {
-                trace!("cache is up-to-date");
+                println!("Install is up-to-date, Loading...");
             } else {
-                trace!("cache is outdated");
+                println!("Install is Outdated");
+                println!("Uninstalling Original...");
                 extract(&self_path, &cache_path)?;
             }
         }
         Err(_) => {
-            trace!("cache not found");
+            println!("Install not found");
             extract(&self_path, &cache_path)?;
         }
     }
