@@ -1,8 +1,7 @@
 extern crate clap;
 extern crate dirs;
 extern crate zstd;
-#[macro_use]
-extern crate lazy_static;
+extern crate once_cell;
 extern crate mimalloc;
 extern crate reqwest;
 extern crate tar;
@@ -12,7 +11,8 @@ use mimalloc::MiMalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 use clap::{App, AppSettings, Arg};
-use std::collections::HashMap;
+use std::{collections::HashMap};
+use once_cell::sync::Lazy;
 use std::error::Error;
 use std::{fs,io,process,env};
 use std::fs::File;
@@ -28,16 +28,16 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const RUNNER_MAGIC: &[u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q7daes4E1y3p2U2wlJRYmWmjPYfkhZ0PlT14Ls0j8fdDkoj33f2BlRJavLj3mWGibJsGt5uLAtrCDtvxikZ8UX2mQDCrgE\0";
 
-lazy_static! {
-    static ref RUNNER_BY_ARCH: HashMap<&'static str, &'static [u8]> = {
-        let mut m = HashMap::new();
 
-		const RUNNER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"),"/../../../Zrun.exe"));
-		m.insert("application", RUNNER);
+static RUNNER_BY_ARCH: Lazy<HashMap<&'static str, &'static [u8]>> = Lazy::new(|| {
+	let mut m = HashMap::new();
 
-        m
-    };
-}
+	const RUNNER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"),"/../../../Zrun.exe"));
+	m.insert("application", RUNNER);
+
+	m
+});
+
 
 /// Print a message to stderr and exit with error code 1
 macro_rules! bail {
