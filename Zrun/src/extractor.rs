@@ -102,12 +102,8 @@ fn extract_at_offset(src: &Path, offs: usize, dst: &Path) -> io::Result<()> {
     let mut tar = Archive::new(gz);
     println!("{:?}","hidden_install");
     unsafe {
-        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_HIDDEN);
-        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_HIDDEN);
-        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
-        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
-        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_SYSTEM);
-        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_SYSTEM);        
+        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN);
+        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN);      
     };
     tar.unpack(dst)?;
     Ok(())
