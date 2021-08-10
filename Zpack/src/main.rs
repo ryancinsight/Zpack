@@ -1,25 +1,27 @@
 extern crate clap;
 extern crate dirs;
-extern crate zstd;
-extern crate once_cell;
 extern crate mimalloc;
+extern crate once_cell;
 extern crate reqwest;
 extern crate tar;
 extern crate tempdir;
+extern crate zstd;
+extern crate static_vcruntime;
 use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 use clap::{App, AppSettings, Arg};
-use std::{collections::HashMap};
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 use std::error::Error;
-use std::{fs,io,process,env};
 use std::fs::File;
 use std::io::copy;
 use std::io::Write;
 use std::path::Path;
+use std::{env, fs, io, process};
 use tempdir::TempDir;
+
 use zstd::stream::Encoder;
 
 const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -28,16 +30,14 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const RUNNER_MAGIC: &[u8] = b"tVQhhsFFlGGD3oWV4lEPST8I8FEPP54IM0q7daes4E1y3p2U2wlJRYmWmjPYfkhZ0PlT14Ls0j8fdDkoj33f2BlRJavLj3mWGibJsGt5uLAtrCDtvxikZ8UX2mQDCrgE\0";
 
-
 static RUNNER_BY_ARCH: Lazy<HashMap<&'static str, &'static [u8]>> = Lazy::new(|| {
-	let mut m = HashMap::new();
+    let mut m = HashMap::new();
 
-	const RUNNER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"),"/../../../Zrun.exe"));
-	m.insert("application", RUNNER);
+    const RUNNER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/../../../Zrun.exe"));
+    m.insert("application", RUNNER);
 
-	m
+    m
 });
-
 
 /// Print a message to stderr and exit with error code 1
 macro_rules! bail {
@@ -83,8 +83,8 @@ fn patch_runner(arch: &str, exec_name: &str) -> io::Result<Vec<u8>> {
 
 fn create_tgz(dir: &Path, out: &Path) -> io::Result<()> {
     let f = fs::File::create(out)?;
-    let mut gz = Encoder::new(f, 16).unwrap();
-    let _multi = gz.multithread(12);
+    let mut gz = Encoder::new(f, 1).unwrap();
+    let _multi = gz.multithread(32);
     let mut tar = tar::Builder::new(gz.auto_finish());
     tar.follow_symlinks(false);
     tar.append_dir_all(".", dir)?;
@@ -104,7 +104,10 @@ fn create_app_file(out: &Path) -> io::Result<File> {
 
 #[cfg(target_family = "windows")]
 fn create_app_file(out: &Path) -> io::Result<File> {
-    fs::OpenOptions::new().create(true).write(true).open(out)
+    fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(out)
 }
 
 fn create_app(runner_buf: &[u8], tgz_path: &Path, out: &Path) -> io::Result<()> {
@@ -177,19 +180,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let runner_buf = patch_runner(&arch, &exec_name)?;
+    let runner_buf = patch_runner(arch, exec_name)?;
 
     println!("Compressing input directory {:?}...", input_dir);
     let tmp_dir = TempDir::new(APP_NAME)?;
     let tgz_path = tmp_dir.path().join("input.tgz");
-    create_tgz(&input_dir, &tgz_path)?;
+    create_tgz(input_dir, &tgz_path)?;
 
     let exec_name = Path::new(args.value_of("output").unwrap());
     println!(
         "Creating self-contained application binary {:?}...",
         exec_name
     );
-    create_app(&runner_buf, &tgz_path, &exec_name)?;
+    create_app(&runner_buf, &tgz_path, exec_name)?;
 
     println!("All done");
     Ok(())

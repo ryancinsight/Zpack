@@ -1,0 +1,12 @@
+[workspace]
+members = ["zrun", "zpack"]
+
+[tasks.build]
+command = "cargo"
+args = ["build","--package","zrun","--release","--target","${CARGO_MAKE_RUST_TARGET_TRIPLE}"]
+
+
+[tasks.install]
+command = "cargo"
+args = ["install","--path","zpack","--target","${CARGO_MAKE_RUST_TARGET_TRIPLE}","--force"]
+dependencies = ["build"]

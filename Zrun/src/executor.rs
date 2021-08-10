@@ -11,7 +11,6 @@ use std::process::Command;
 use std::process::Stdio;
 
 pub fn execute(target: &Path) -> io::Result<i32> {
-
     let args: Vec<String> = env::args().skip(1).collect();
 
     do_execute(target, &args)
@@ -53,10 +52,12 @@ fn is_script(target: &Path) -> bool {
 
 #[cfg(target_family = "windows")]
 fn do_execute(target: &Path, args: &[String]) -> io::Result<i32> {
-
-
     if is_script(target) {
-        let cmd_args = vec!["/c".to_string(),target.as_os_str().to_str().unwrap().to_string(),args.to_owned().iter().map(String::as_str).collect()];
+        let cmd_args = vec![
+            "/c".to_string(),
+            target.as_os_str().to_str().unwrap().to_string(),
+            args.to_owned().iter().map(String::as_str).collect(),
+        ];
 
         Ok(Command::new("cmd")
             .args(cmd_args)

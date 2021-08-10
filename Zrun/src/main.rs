@@ -5,7 +5,6 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-
 extern crate remove_dir_all;
 use remove_dir_all::remove_dir_all;
 use std::env;
@@ -15,6 +14,7 @@ use std::fs;
 use std::io;
 use std::path::*;
 use std::process;
+extern crate static_vcruntime;
 
 mod executor;
 mod extractor;
@@ -37,18 +37,20 @@ fn target_file_name() -> &'static str {
 fn extract(exe_path: &Path, cache_path: &Path) -> io::Result<()> {
     remove_dir_all(cache_path).ok();
     println!("Installing new version");
-    extractor::extract_to(&exe_path, &cache_path)?;
+    extractor::extract_to(exe_path, cache_path)?;
+    println!("Install Finished, running ...");
+
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let self_path = env::current_exe()?;
-    let self_file_name = self_path.file_name().unwrap();
+    let self_file_name = self_path.file_stem().unwrap();
     let path: String = self_file_name.to_str().unwrap().to_string();
     let mut cache_path = PathBuf::new();
-    //cache_path.push(r"D:/");
-    cache_path.push(dirs::data_local_dir().unwrap());
-    cache_path.push("AppData");
+    cache_path.push(r"D:/");
+    //cache_path.push(dirs::data_local_dir().unwrap());
+    cache_path.push("FusWs/Shared/Tools");
     cache_path.push(path);
 
     let target_file_name = target_file_name();

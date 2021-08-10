@@ -1,14 +1,19 @@
 extern crate memmem;
 extern crate tar;
 extern crate zstd;
+extern crate winapi;
 
 use self::memmem::{Searcher, TwoWaySearcher};
 use self::tar::Archive;
 use self::zstd::stream::read::Decoder;
 use std::fs::File;
+
 use std::io;
 use std::io::{BufReader, Read, Seek, SeekFrom};
+
 use std::path::Path;
+use winapi::um::fileapi::{SetFileAttributesA,SetFileAttributesW};
+use winapi::um::winnt::{FILE_ATTRIBUTE_HIDDEN,FILE_ATTRIBUTE_NOT_CONTENT_INDEXED,FILE_ATTRIBUTE_SYSTEM};
 
 struct FileSearcher<'a> {
     buf_reader: BufReader<File>,
@@ -95,6 +100,15 @@ fn extract_at_offset(src: &Path, offs: usize, dst: &Path) -> io::Result<()> {
     f.seek(SeekFrom::Start(offs as u64))?;
     let gz = Decoder::new(f).unwrap();
     let mut tar = Archive::new(gz);
+    println!("{:?}","hidden_install");
+    unsafe {
+        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_HIDDEN);
+        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_HIDDEN);
+        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
+        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
+        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_SYSTEM);
+        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_SYSTEM);        
+    };
     tar.unpack(dst)?;
     Ok(())
 }
