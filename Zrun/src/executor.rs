@@ -10,6 +10,7 @@ use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 
+#[inline(always)]
 pub fn execute(target: &Path) -> io::Result<i32> {
     let args: Vec<String> = env::args().skip(1).collect();
 
@@ -17,12 +18,14 @@ pub fn execute(target: &Path) -> io::Result<i32> {
 }
 
 #[cfg(target_family = "unix")]
+#[inline(always)]
 fn ensure_executable(target: &Path) {
     let perms = Permissions::from_mode(0o770);
     fs::set_permissions(target, perms).unwrap();
 }
 
 #[cfg(target_family = "unix")]
+#[inline(always)]
 fn do_execute(target: &Path, args: &[String]) -> io::Result<i32> {
     ensure_executable(target);
 
@@ -38,6 +41,7 @@ fn do_execute(target: &Path, args: &[String]) -> io::Result<i32> {
 }
 
 #[cfg(target_family = "windows")]
+#[inline(always)]
 fn is_script(target: &Path) -> bool {
     const SCRIPT_EXTENSIONS: &[&str] = &["bat", "cmd"];
     SCRIPT_EXTENSIONS.contains(
@@ -51,6 +55,7 @@ fn is_script(target: &Path) -> bool {
 }
 
 #[cfg(target_family = "windows")]
+#[inline(always)]
 fn do_execute(target: &Path, args: &[String]) -> io::Result<i32> {
     if is_script(target) {
         let cmd_args = vec![

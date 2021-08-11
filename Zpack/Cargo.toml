@@ -1,21 +1,21 @@
 [package]
 name = "zpack"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Ryan Clanton <ryanc@insightec.com.com>","Diego Giagio <diego@giagio.com>"]
 edition ="2018"
 
 [dependencies]
-mimalloc = { version = "0.1.24", features = ["override","local_dynamic_tls"] }
-remove_dir_all = "0.6.1"
-clap = "2.33.3"
-dirs = "3.0.1"
-reqwest = "0.11.1"
-tempdir = "0.3.7"
-tar = "0.4.32"
-once_cell = "1.6.0"
-zstd = { version = "0.6.0"}
+mimalloc = { version = "*", features = ["override","local_dynamic_tls"] }
+remove_dir_all = "*"
+clap = "*"
+dirs = "*"
+reqwest = "*"
+tar = "*"
+once_cell = "*"
+zstd = "*"
 winapi = "*"
-static_vcruntime = "1.5"
+static_vcruntime = "*"
+
 [profile.release]
 # Enable link-time optimization, eliminates more code and inlines across crate boundaries.
 # Default: false

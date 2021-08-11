@@ -1,18 +1,18 @@
 [package]
 name = "zrun"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Ryan Clanton <ryanc@insightec.com>","Diego Giagio <diego@giagio.com>"]
 edition ="2018"
 
 [dependencies]
-mimalloc = { version = "0.1.24", features = ["override","local_dynamic_tls"] }
-remove_dir_all = "0.6.1"
-memmem = "0.1.1"
-tar = "0.4.32"
-dirs = "3.0.1"
-winapi = "0.3.9"
-zstd = { version = "0.6.0"}
-static_vcruntime = "1.5"
+mimalloc = { version = "*", features = ["override","local_dynamic_tls"] }
+remove_dir_all = "*"
+memmem = "*"
+tar = "*"
+dirs = "*"
+winapi = "*"
+zstd = { version = "*"}
+static_vcruntime = "*"
 
 [profile.release]
 # Enable link-time optimization, eliminates more code and inlines across crate boundaries.

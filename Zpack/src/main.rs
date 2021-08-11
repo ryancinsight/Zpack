@@ -4,23 +4,24 @@ extern crate mimalloc;
 extern crate once_cell;
 extern crate reqwest;
 extern crate tar;
-extern crate tempdir;
 extern crate zstd;
 extern crate static_vcruntime;
 use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+#[cfg(target_family = "windows")]
+extern crate winapi;
+
 use clap::{App, AppSettings, Arg};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::io::copy;
 use std::io::Write;
 use std::path::Path;
 use std::{env, fs, io, process};
-use tempdir::TempDir;
+
 
 use zstd::stream::Encoder;
 
@@ -48,6 +49,7 @@ macro_rules! bail {
     })
 }
 
+#[inline(always)]
 fn patch_runner(arch: &str, exec_name: &str) -> io::Result<Vec<u8>> {
     // Read runner executable in memory
     let runner_contents = RUNNER_BY_ARCH.get(arch).unwrap();
@@ -81,17 +83,8 @@ fn patch_runner(arch: &str, exec_name: &str) -> io::Result<Vec<u8>> {
     Ok(buf)
 }
 
-fn create_tgz(dir: &Path, out: &Path) -> io::Result<()> {
-    let f = fs::File::create(out)?;
-    let mut gz = Encoder::new(f, 1).unwrap();
-    let _multi = gz.multithread(32);
-    let mut tar = tar::Builder::new(gz.auto_finish());
-    tar.follow_symlinks(false);
-    tar.append_dir_all(".", dir)?;
-    Ok(())
-}
-
 #[cfg(target_family = "unix")]
+#[inline(always)]
 fn create_app_file(out: &Path) -> io::Result<File> {
     use std::os::unix::fs::OpenOptionsExt;
 
@@ -103,21 +96,32 @@ fn create_app_file(out: &Path) -> io::Result<File> {
 }
 
 #[cfg(target_family = "windows")]
+#[inline(always)]
 fn create_app_file(out: &Path) -> io::Result<File> {
+    use std::os::windows::fs::OpenOptionsExt;
+    use winapi::um::winbase::SECURITY_IDENTIFICATION;
     fs::OpenOptions::new()
         .create(true)
         .write(true)
+        .security_qos_flags(SECURITY_IDENTIFICATION)
         .open(out)
 }
 
-fn create_app(runner_buf: &[u8], tgz_path: &Path, out: &Path) -> io::Result<()> {
+#[inline(always)]
+fn create_app(dir: &Path,runner_buf: &[u8], out: &Path) -> io::Result<()> {
     let mut outf = create_app_file(out)?;
-    let mut tgzf = fs::File::open(tgz_path)?;
+    let gz = Encoder::new(Vec::new(), 6)?;
+    let mut tar = tar::Builder::new(gz);
+    tar.follow_symlinks(true);  
+    tar.append_dir_all(".", dir)?;
+    let encoder_data: Encoder<Vec<u8>> = tar.into_inner()?;
+    let compress_vec: &[u8] = &encoder_data.finish()?;
     outf.write_all(runner_buf)?;
-    copy(&mut tgzf, &mut outf)?;
+    outf.write_all(compress_vec)?;
     Ok(())
 }
 
+#[inline(always)]
 fn main() -> Result<(), Box<dyn Error>> {
     let args = App::new(APP_NAME)
         .settings(&[AppSettings::ArgRequiredElseHelp, AppSettings::ColoredHelp])
@@ -183,16 +187,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let runner_buf = patch_runner(arch, exec_name)?;
 
     println!("Compressing input directory {:?}...", input_dir);
-    let tmp_dir = TempDir::new(APP_NAME)?;
-    let tgz_path = tmp_dir.path().join("input.tgz");
-    create_tgz(input_dir, &tgz_path)?;
+    //let tmp_dir = TempDir::new(APP_NAME)?;
+    //let tgz_path = tmp_dir.path().join("input.tgz");
+    //create_tgz(input_dir, &tgz_path)?;
 
     let exec_name = Path::new(args.value_of("output").unwrap());
     println!(
         "Creating self-contained application binary {:?}...",
         exec_name
     );
-    create_app(&runner_buf, &tgz_path, exec_name)?;
+    create_app(input_dir,&runner_buf, exec_name)?;
 
     println!("All done");
     Ok(())

