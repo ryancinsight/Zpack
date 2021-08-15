@@ -6,6 +6,7 @@ extern crate reqwest;
 extern crate tar;
 extern crate zstd;
 extern crate static_vcruntime;
+
 use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -17,10 +18,12 @@ use clap::{App, AppSettings, Arg};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
+use std::fs::{OpenOptions,File};
 use std::io::Write;
 use std::path::Path;
 use std::{env, fs, io, process};
+use walkdir::WalkDir;
+
 
 
 use zstd::stream::Encoder;
@@ -100,20 +103,39 @@ fn create_app_file(out: &Path) -> io::Result<File> {
 fn create_app_file(out: &Path) -> io::Result<File> {
     use std::os::windows::fs::OpenOptionsExt;
     use winapi::um::winbase::SECURITY_IDENTIFICATION;
-    fs::OpenOptions::new()
+    OpenOptions::new()
         .create(true)
         .write(true)
         .security_qos_flags(SECURITY_IDENTIFICATION)
         .open(out)
 }
 
+
 #[inline(always)]
-fn create_app(dir: &Path,runner_buf: &[u8], out: &Path) -> io::Result<()> {
+fn create_app(dir: &Path,runner_buf: &[u8], out: &Path, move_dlls: bool) -> io::Result<()> {
     let mut outf = create_app_file(out)?;
     let gz = Encoder::new(Vec::new(), 6)?;
     let mut tar = tar::Builder::new(gz);
-    tar.follow_symlinks(true);  
-    tar.append_dir_all(".", dir)?;
+    tar.follow_symlinks(true); 
+    WalkDir::new(dir).into_iter().filter_map(|e| e.ok()).for_each(|entry| {
+        let path = entry.path();
+        let name = path.strip_prefix(Path::new(dir)).unwrap();
+        if path.is_file() {
+            if name.to_str().unwrap().ends_with(".dll") {
+                if move_dlls {
+                    tar.append_path_with_name(path,path.file_name().unwrap()).unwrap();
+                } else {
+                    tar.append_path_with_name(path,name).unwrap();
+                };
+                println!("added dll file {:?} as {:?} ...", path, path.file_name().unwrap());
+            } else {
+                tar.append_path_with_name(path,name).unwrap();
+                println!("added file {:?} as {:?} ...", path, name);
+            };
+        };
+    });
+
+    //tar.append_dir_all(".", dir)?;
     let encoder_data: Encoder<Vec<u8>> = tar.into_inner()?;
     let compress_vec: &[u8] = &encoder_data.finish()?;
     outf.write_all(runner_buf)?;
@@ -158,6 +180,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .takes_value(true)
                 .required(true),
         )
+        .arg(
+            Arg::with_name("move_dlls")
+                .short("mdll")
+                .long("move_dlls")
+                .value_name("move_dlls")
+                .help("Move dlls to parent exe path")
+                .display_order(4)
+                .takes_value(false)
+                .required(false),
+        )
         .get_matches();
 
     let arch = "application";
@@ -166,7 +198,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if fs::metadata(input_dir).is_err() {
         bail!("Cannot access specified input directory {:?}", input_dir);
     }
-
+    let move_dlls = args.is_present("move_dlls");
     let exec_name = args.value_of("exec").unwrap();
     if exec_name.len() >= RUNNER_MAGIC.len() {
         bail!("Executable name is too long, please consider using a shorter name");
@@ -196,7 +228,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "Creating self-contained application binary {:?}...",
         exec_name
     );
-    create_app(input_dir,&runner_buf, exec_name)?;
+    create_app(input_dir,&runner_buf, exec_name, move_dlls)?;
 
     println!("All done");
     Ok(())

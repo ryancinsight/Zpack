@@ -30,3 +30,5 @@ debug = true
 # "s" means optimize for size, "z" reduces size even more.
 opt-level = 3
 
+
+rustflags = ["-C", "target-feature=+crt-static,avx2", "-C", "target-cpu=native","-C","linker-plugin-lto"]

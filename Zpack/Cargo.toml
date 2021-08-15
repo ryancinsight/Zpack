@@ -12,9 +12,11 @@ dirs = "*"
 reqwest = "*"
 tar = "*"
 once_cell = "*"
-zstd = "*"
+zstd = {version = "*", features = ["experimental","thin"]}
 winapi = "*"
 static_vcruntime = "*"
+walkdir ="*"
+
 
 [profile.release]
 # Enable link-time optimization, eliminates more code and inlines across crate boundaries.
@@ -36,4 +38,4 @@ debug = true
 opt-level = 3
 
 [target.'cfg(all(windows, target_env = "msvc"))']
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static,avx2"]

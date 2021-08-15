@@ -14,7 +14,7 @@ rustflags = [
 
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld"
-rustflags = ["-C","target-feature=+crt-static","-C", "opt-level=3","-C","embed-bitcode=yes","-C","linker-plugin-lto","-C", "prefer-dynamic=no"]
+rustflags = ["-C","target-feature=+crt-static,avx2,sse4.2","-C", "opt-level=3","-C","embed-bitcode=yes","-C","linker-plugin-lto=y","-C", "prefer-dynamic=no"]
 
 
 

@@ -11,7 +11,7 @@ memmem = "*"
 tar = "*"
 dirs = "*"
 winapi = "*"
-zstd = { version = "*"}
+zstd = {version = "*", features = ["experimental","thin"]}
 static_vcruntime = "*"
 
 [profile.release]
@@ -34,4 +34,4 @@ debug = true
 opt-level = 3
 
 [target.'cfg(all(windows, target_env = "msvc"))']
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static,avx2", "-C", "target-cpu=native","-C","linker-plugin-lto"]

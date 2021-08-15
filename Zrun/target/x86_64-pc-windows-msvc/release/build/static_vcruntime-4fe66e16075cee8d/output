@@ -1,0 +1,3 @@
+cargo:rerun-if-env-changed=PROFILE
+cargo:rustc-cfg=release
+cargo:rustc-link-search=native=D:\fork\warp\zrun\target\x86_64-pc-windows-msvc\release\build\static_vcruntime-4fe66e16075cee8d\out
