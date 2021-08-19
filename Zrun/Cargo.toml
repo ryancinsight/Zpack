@@ -11,8 +11,10 @@ memmem = "*"
 tar = "*"
 dirs = "*"
 winapi = "*"
-zstd = {version = "*", features = ["experimental","thin"]}
+zstd = {version = "*"}
 static_vcruntime = "*"
+walkdir ="*"
+
 
 [profile.release]
 # Enable link-time optimization, eliminates more code and inlines across crate boundaries.

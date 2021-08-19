@@ -56,7 +56,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     //cache_path.push(dirs::data_local_dir().unwrap());
     //cache_path.push("FusWs/Shared/Tools");
     cache_path.push(path);
-    cache_path.canonicalize().unwrap();
 
     let target_file_name = target_file_name();
     let target_path = cache_path.join(target_file_name);
@@ -76,23 +75,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             extract(&self_path, &cache_path)?;
         }
     }
-    if let Some(path) = env::var_os("PATH") {
-        let mut paths = env::split_paths(&path).collect::<Vec<_>>();
-        paths.push(PathBuf::from(&cache_path));
-        let new_path = env::join_paths(paths)?;
-        env::set_var("PATH", &new_path);
-    };
-    let exit_code = executor::execute(&target_path)?;
-    if exit_code == 0 {
-        process::exit(exit_code);
-    } else if exit_code== 1 {
-        process::exit(exit_code);
-    } else if exit_code== 2 {
-        process::exit(exit_code);
-    } else {
-        println!("Execute Issue {}, reinstalling ...",exit_code);
+    let exit_code: i32 = executor::execute(&target_path)?;
+    match exit_code {
+    0 | 2 => {println!("Execute Issue {} ...",exit_code);
+                    process::exit(exit_code)},
+    _ => {println!("Execute Issue {}, reinstalling ...",exit_code);
         extract(&self_path, &cache_path)?;
         let exit_code = executor::execute(&target_path)?;
         process::exit(exit_code);
+        }
     }
 }

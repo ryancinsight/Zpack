@@ -8,6 +8,9 @@ use self::tar::Archive;
 use self::zstd::stream::read::Decoder;
 use std::fs::File;
 
+
+
+
 use std::io;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
@@ -101,7 +104,7 @@ pub fn extract_to(src: &Path, dst: &Path) -> io::Result<()> {
 fn extract_at_offset(src: &Path, offs: usize, dst: &Path) -> io::Result<()> {
     let mut f = File::open(src)?;
     f.seek(SeekFrom::Start(offs as u64))?;
-    let gz = Decoder::new(f).unwrap();
+    let gz = Decoder::new(&f).unwrap();
     let mut tar = Archive::new(gz);
     unsafe {
         SetFileAttributesA(dst.to_str().unwrap().as_ptr() as *const i8,FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);

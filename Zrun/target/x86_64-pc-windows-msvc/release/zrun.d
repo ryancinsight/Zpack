@@ -1,1 +1,0 @@
-D:\fork\warp\zrun\target\x86_64-pc-windows-msvc\release\zrun.exe: C:\Users\RyanC\.cargo\registry\src\github.com-1ecc6299db9ec823\winapi-0.3.9\build.rs D:\fork\warp\zrun\src\executor.rs D:\fork\warp\zrun\src\extractor.rs D:\fork\warp\zrun\src\main.rs

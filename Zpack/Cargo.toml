@@ -12,7 +12,7 @@ dirs = "*"
 reqwest = "*"
 tar = "*"
 once_cell = "*"
-zstd = {version = "*", features = ["experimental","thin"]}
+zstd = {version = "*", features = ["experimental","thin"] }
 winapi = "*"
 static_vcruntime = "*"
 walkdir ="*"

@@ -114,9 +114,10 @@ fn create_app_file(out: &Path) -> io::Result<File> {
 #[inline(always)]
 fn create_app(dir: &Path,runner_buf: &[u8], out: &Path, move_dlls: bool) -> io::Result<()> {
     let mut outf = create_app_file(out)?;
-    let gz = Encoder::new(Vec::new(), 6)?;
+    let gz = Encoder::new(vec![], 6)?;
     let mut tar = tar::Builder::new(gz);
     tar.follow_symlinks(true); 
+    println!("Compressing input directory {:?}...", dir);
     WalkDir::new(dir).into_iter().filter_map(|e| e.ok()).for_each(|entry| {
         let path = entry.path();
         let name = path.strip_prefix(Path::new(dir)).unwrap();
@@ -128,6 +129,8 @@ fn create_app(dir: &Path,runner_buf: &[u8], out: &Path, move_dlls: bool) -> io::
                     tar.append_path_with_name(path,name).unwrap();
                 };
                 println!("added dll file {:?} as {:?} ...", path, path.file_name().unwrap());
+            } else if name.to_str().unwrap().contains("test") & ! name.to_str().unwrap().ends_with(".pyd") & ! name.to_str().unwrap().ends_with(".pyc") {
+                println!("ignoring file {:?} ...", path);
             } else {
                 tar.append_path_with_name(path,name).unwrap();
                 println!("added file {:?} as {:?} ...", path, name);
@@ -217,11 +220,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let runner_buf = patch_runner(arch, exec_name)?;
-
-    println!("Compressing input directory {:?}...", input_dir);
-    //let tmp_dir = TempDir::new(APP_NAME)?;
-    //let tgz_path = tmp_dir.path().join("input.tgz");
-    //create_tgz(input_dir, &tgz_path)?;
 
     let exec_name = Path::new(args.value_of("output").unwrap());
     println!(
