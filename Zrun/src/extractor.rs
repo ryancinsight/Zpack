@@ -15,7 +15,7 @@ use std::io;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
 use std::path::Path;
-use winapi::um::fileapi::{SetFileAttributesA,SetFileAttributesW};
+use winapi::um::fileapi::{SetFileAttributesA,SetFileAttributesW,};
 use winapi::um::winnt::{FILE_ATTRIBUTE_HIDDEN,FILE_ATTRIBUTE_NOT_CONTENT_INDEXED,FILE_ATTRIBUTE_SYSTEM};
 
 struct FileSearcher<'a> {

@@ -16,6 +16,7 @@ zstd = {version = "*", features = ["experimental","thin"] }
 winapi = "*"
 static_vcruntime = "*"
 walkdir ="*"
+rfd="*"
 
 
 [profile.release]

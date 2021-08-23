@@ -114,35 +114,31 @@ fn create_app_file(out: &Path) -> io::Result<File> {
 #[inline(always)]
 fn create_app(dir: &Path,runner_buf: &[u8], out: &Path, move_dlls: bool) -> io::Result<()> {
     let mut outf = create_app_file(out)?;
-    let gz = Encoder::new(vec![], 6)?;
+    outf.write_all(runner_buf)?;
+    let gz = Encoder::new(outf, 6)?.auto_finish();
     let mut tar = tar::Builder::new(gz);
-    tar.follow_symlinks(true); 
+    tar.follow_symlinks(false); 
     println!("Compressing input directory {:?}...", dir);
-    WalkDir::new(dir).into_iter().filter_map(|e| e.ok()).for_each(|entry| {
+    WalkDir::new(dir).into_iter()
+    .filter_map(|e| e.ok())
+    .filter(|e| !e.file_type().is_dir())
+    .for_each(|entry| {
         let path = entry.path();
         let name = path.strip_prefix(Path::new(dir)).unwrap();
-        if path.is_file() {
-            if name.to_str().unwrap().ends_with(".dll") {
-                if move_dlls {
-                    tar.append_path_with_name(path,path.file_name().unwrap()).unwrap();
-                } else {
-                    tar.append_path_with_name(path,name).unwrap();
-                };
-                println!("added dll file {:?} as {:?} ...", path, path.file_name().unwrap());
-            } else if name.to_str().unwrap().contains("test") & ! name.to_str().unwrap().ends_with(".pyd") & ! name.to_str().unwrap().ends_with(".pyc") {
-                println!("ignoring file {:?} ...", path);
+        if name.to_str().unwrap().ends_with(".dll") {
+            if move_dlls {
+                tar.append_path_with_name(path,path.file_name().unwrap()).unwrap();
             } else {
                 tar.append_path_with_name(path,name).unwrap();
-                println!("added file {:?} as {:?} ...", path, name);
             };
+            println!("added dll file {:?} as {:?} ...", path, path.file_name().unwrap());
+        } else if name.to_str().unwrap().contains("test") & ! name.to_str().unwrap().ends_with(".pyd") & ! name.to_str().unwrap().ends_with(".pyc") {
+            println!("ignoring file {:?} ...", path);
+        } else {
+            tar.append_path_with_name(path,name).unwrap();
+            println!("added file {:?} as {:?} ...", path, name);
         };
     });
-
-    //tar.append_dir_all(".", dir)?;
-    let encoder_data: Encoder<Vec<u8>> = tar.into_inner()?;
-    let compress_vec: &[u8] = &encoder_data.finish()?;
-    outf.write_all(runner_buf)?;
-    outf.write_all(compress_vec)?;
     Ok(())
 }
 
